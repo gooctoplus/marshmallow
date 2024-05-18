@@ -276,6 +276,58 @@ class TestListNested:
                 'children': {0: {'age': ['Missing data for required field.']}},
             }
 
+    def test_list_only_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(only=['children.name'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_nested_many_only_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(only=['children.name'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_list_exclude_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(exclude=['children.age'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_nested_many_exclude_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(exclude=['children.age'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
 
 class TestTupleNested:
 
