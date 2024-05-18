@@ -10,7 +10,7 @@ import math
 import warnings
 from collections.abc import Mapping as _Mapping
 
-from marshmallow import validate, utils, class_registry
+from marshmallow import validate, utils, class_registry, Schema  # Ensure Schema is imported
 from marshmallow.base import FieldABC, SchemaABC
 from marshmallow.utils import (
     is_collection,
