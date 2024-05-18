@@ -1,5 +1,4 @@
 import pytest
-
 from marshmallow import (
     fields,
     Schema,
@@ -10,9 +9,62 @@ from marshmallow import (
     missing,
 )
 from marshmallow.exceptions import StringNotCollectionError
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
+from sqlalchemy import Column, DATE, create_engine, ForeignKey
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from testing.postgresql import Postgresql
 
 from tests.base import ALL_FIELDS
 
+Base = declarative_base()
+
+class Author(Base):
+    __tablename__ = 'author'
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    docs = relationship('Document', back_populates='parent')
+
+class Document(Base):
+    __tablename__ = 'document'
+    id = Column(UUID(as_uuid=True), primary_key=True)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey('author.id'))
+    parent = relationship(Author, back_populates='docs')
+    last_updated = Column(DATE)
+
+class AuthorSchema(SQLAlchemyAutoSchema):
+    class Meta(SQLAlchemyAutoSchema.Meta):
+        model = Author
+
+class DocumentSchema(SQLAlchemyAutoSchema):
+    parent = fields.Nested(AuthorSchema)
+
+    class Meta(SQLAlchemyAutoSchema.Meta):
+        model = Document
+
+class TestFieldParent:
+    
+    def test_schema_with_parent_field(self):
+        with Postgresql() as postgresql:
+            url = postgresql.url(drivername='postgresql+psycopg2')
+            engine = create_engine(url, echo=True)
+            Base.metadata.create_all(engine)
+            Session = sessionmaker(bind=engine)
+            session = Session()
+            
+            # Creating instances for testing
+            author = Author(id='11111111-1111-1111-1111-111111111111')  # INPUT_REQUIRED {author_id}
+            document = Document(id='22222222-2222-2222-2222-222222222222', parent=author)  # INPUT_REQUIRED {document_id}
+            session.add(author)
+            session.add(document)
+            session.commit()
+
+            # Serializing the document instance
+            try:
+                schema = DocumentSchema(unknown=INCLUDE)
+                result = schema.dump(document)
+                assert 'parent' in result
+            except AttributeError as e:
+                pytest.fail(f"DocumentSchema raised an AttributeError: {e}")
 
 @pytest.mark.parametrize(
     ("alias", "field"),
@@ -25,7 +77,6 @@ from tests.base import ALL_FIELDS
 )
 def test_field_aliases(alias, field):
     assert alias is field
-
 
 class TestField:
     def test_repr(self):
@@ -91,7 +142,6 @@ class TestField:
 
         result = MySchema().dump({"name": "Monty", "foo": 42})
         assert result == {"_NaMe": "Monty"}
-
 
 class TestParentAndName:
     class MySchema(Schema):
@@ -187,7 +237,6 @@ class TestParentAndName:
         for field_name in ("bar", "qux"):
             assert schema.fields[field_name].tuple_fields[0].format == "iso8601"
 
-
 class TestMetadata:
     @pytest.mark.parametrize("FieldClass", ALL_FIELDS)
     def test_extra_metadata_may_be_added_to_field(self, FieldClass):  # noqa
@@ -218,7 +267,6 @@ class TestMetadata:
                 metadata={"widget": "select"},
             )
         assert field.metadata == {"description": "foo", "widget": "select"}
-
 
 class TestErrorMessages:
     class MyField(fields.Field):
@@ -264,7 +312,6 @@ class TestErrorMessages:
             self.MyField().make_error("doesntexist")
         assert "doesntexist" in excinfo.value.args[0]
         assert "MyField" in excinfo.value.args[0]
-
 
 class TestNestedField:
     @pytest.mark.parametrize("param", ("only", "exclude"))
