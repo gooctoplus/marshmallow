@@ -160,7 +160,8 @@ class Field(FieldABC):
         load_only: bool = False,
         dump_only: bool = False,
         error_messages: typing.Optional[typing.Dict[str, str]] = None,
-        **metadata
+        metadata: typing.Optional[typing.Dict[str, typing.Any]] = None,
+        **kwargs
     ) -> None:
         self.default = default
         self.attribute = attribute
@@ -187,7 +188,11 @@ class Field(FieldABC):
             raise ValueError("'missing' must not be set for required fields.")
         self.required = required
         self.missing = missing
-        self.metadata = metadata
+        
+        # Initialize metadata dictionary
+        self.metadata = metadata or {}
+        self.metadata.update(kwargs)
+
         self._creation_index = Field._creation_index
         Field._creation_index += 1
 
