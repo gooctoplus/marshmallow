@@ -9,7 +9,7 @@ import uuid
 import warnings
 import decimal
 import types
-import itertools  # Added import
+import itertools
 
 from marshmallow import validate, utils, class_registry
 from marshmallow.base import FieldABC, SchemaABC
