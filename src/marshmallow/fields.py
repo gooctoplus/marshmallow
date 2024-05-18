@@ -16,6 +16,7 @@ from marshmallow.compat import text_type, basestring, Mapping
 from marshmallow.exceptions import ValidationError
 from marshmallow.validate import Validator
 from marshmallow.warnings import RemovedInMarshmallow3Warning
+from collections.abc import Generator
 
 __all__ = [
     'Field',
@@ -443,6 +444,8 @@ class Nested(Field):
         schema = self.schema
         if nested_obj is None:
             return None
+        if isinstance(nested_obj, Generator):
+            nested_obj = list(nested_obj)
         if not self.__updated_fields:
             schema._update_fields(obj=nested_obj, many=self.many)
             self.__updated_fields = True
