@@ -392,3 +392,42 @@ Handles `functools.partial` objects and callable objects.
 
 def if_none(value, default):
     return value if value is not None else default
+
+_iso8601_datetime_re = re.compile(
+    r'^(?P<year>\d{4})-'
+    r'(?P<month>\d{2})-'
+    r'(?P<day>\d{2})T'
+    r'(?P<hour>\d{2}):'
+    r'(?P<minute>\d{2}):'
+    r'(?P<second>\d{2})'
+    r'(\.(?P<microsecond>\d{1,6}))?'
+    r'(?P<timezone>Z|[+-]\d{2}:?\d{2})?$'
+)
+
+def from_iso_datetime(value):
+    """Parse an ISO8601 datetime string and return a datetime object.
+    
+    Handles strings ending with 'Z' or other timezone designators.
+    """
+    match = _iso8601_datetime_re.match(value)
+    if not match:
+        raise ValueError('Not a valid ISO8601 datetime string')
+
+    parts = match.groupdict()
+    microsecond = parts['microsecond']
+    if microsecond:
+        microsecond = '{:<06}'.format(microsecond)  # Pad to ensure 6 digits
+    tzinfo = parts['timezone']
+
+    if tzinfo == 'Z':
+        tzinfo = 'UTC'
+    elif tzinfo and tzinfo[0] in ('+', '-'):
+        tzinfo = tzinfo.replace(':', '')
+
+    dt_str = '{year}-{month}-{day}T{hour}:{minute}:{second}'.format(**parts)
+    if microsecond:
+        dt_str += '.{}'.format(microsecond)
+    if tzinfo:
+        dt_str += tzinfo
+
+    return datetime.datetime.strptime(dt_str, '%Y-%m-%dT%H:%M:%S.%f%Z')
