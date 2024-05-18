@@ -191,16 +191,49 @@ class TestParentAndName:
 class TestMetadata:
     @pytest.mark.parametrize("FieldClass", ALL_FIELDS)
     def test_extra_metadata_may_be_added_to_field(self, FieldClass):  # noqa
-        field = FieldClass(description="Just a normal field.")
+        field = FieldClass(metadata={"description": "Just a normal field."})
         assert field.metadata["description"] == "Just a normal field."
         field = FieldClass(
             required=True,
             default=None,
             validate=lambda v: True,
-            description="foo",
-            widget="select",
+            metadata={"description": "foo", "widget": "select"},
         )
         assert field.metadata == {"description": "foo", "widget": "select"}
+
+    def test_field_metadata(self):
+        field = fields.String(metadata={"description": "A string field", "example": "example string"})
+        assert field.metadata["description"] == "A string field"
+        assert field.metadata["example"] == "example string"
+
+    def test_field_deprecated_kwargs(self):
+        with pytest.deprecated_call():
+            field = fields.String(description="A deprecated description", example="example string")
+        assert field.metadata["description"] == "A deprecated description"
+        assert field.metadata["example"] == "example string"
+
+    def test_field_metadata_content(self):
+        metadata = {"description": "A detailed description", "example": "example value"}
+        field = fields.Integer(metadata=metadata)
+        assert field.metadata == metadata
+
+    def test_integer_field_metadata(self):
+        field = fields.Integer(metadata={"min_value": 0, "max_value": 100})
+        assert field.metadata["min_value"] == 0
+        assert field.metadata["max_value"] == 100
+
+    def test_boolean_field_metadata(self):
+        field = fields.Boolean(metadata={"truthy_value": "yes", "falsy_value": "no"})
+        assert field.metadata["truthy_value"] == "yes"
+        assert field.metadata["falsy_value"] == "no"
+
+    def test_field_metadata_with_schema(self):
+        class MySchema(Schema):
+            my_field = fields.String(metadata={"info": "Additional info"})
+
+        schema = MySchema()
+        field = schema.fields["my_field"]
+        assert field.metadata["info"] == "Additional info"
 
 
 class TestErrorMessages:
