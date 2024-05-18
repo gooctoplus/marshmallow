@@ -328,6 +328,62 @@ class TestListNested:
         result = schema.dump(family)
         assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
 
+    def test_list_nested_no_only_exclude(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family()
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_nested_many_no_only_exclude(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2()
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_list_nested_only_exclude_conflict(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(only=['children.name'], exclude=['children.name'])
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_nested_many_only_exclude_conflict(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(only=['children.name'], exclude=['children.name'])
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
 
 class TestTupleNested:
 
