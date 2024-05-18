@@ -8,6 +8,8 @@ import datetime as dt
 import uuid
 import warnings
 import decimal
+import types
+import itertools
 
 from marshmallow import validate, utils, class_registry
 from marshmallow.base import FieldABC, SchemaABC
@@ -443,6 +445,8 @@ class Nested(Field):
         schema = self.schema
         if nested_obj is None:
             return None
+        nested_obj, _ = itertools.tee(nested_obj) if isinstance(nested_obj, types.GeneratorType) else (nested_obj, None)
+        nested_obj = list(nested_obj) if isinstance(nested_obj, types.GeneratorType) else nested_obj
         if not self.__updated_fields:
             schema._update_fields(obj=nested_obj, many=self.many)
             self.__updated_fields = True

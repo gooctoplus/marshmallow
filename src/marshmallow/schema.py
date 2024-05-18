@@ -11,6 +11,8 @@ import json
 import uuid
 import warnings
 import functools
+import types
+import itertools
 
 from marshmallow import base, fields, utils, class_registry, marshalling
 from marshmallow.compat import (with_metaclass, iteritems, text_type,

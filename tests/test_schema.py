@@ -5,6 +5,8 @@ import simplejson as json
 import decimal
 import random
 from collections import namedtuple
+import types
+import itertools
 
 import pytest
 
