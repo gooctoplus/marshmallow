@@ -1,10 +1,7 @@
 import pytest
-
 from marshmallow import fields, Schema, ValidationError, EXCLUDE, INCLUDE, RAISE, missing
 from marshmallow.exceptions import StringNotCollectionError
-
 from tests.base import ALL_FIELDS
-
 
 @pytest.mark.parametrize(
     ('alias', 'field'),
@@ -17,7 +14,6 @@ from tests.base import ALL_FIELDS
 )
 def test_field_aliases(alias, field):
     assert alias is field
-
 
 class TestField:
 
@@ -276,6 +272,114 @@ class TestListNested:
                 'children': {0: {'age': ['Missing data for required field.']}},
             }
 
+    def test_list_only_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(only=['children.name'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_nested_many_only_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(only=['children.name'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_list_exclude_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(exclude=['children.age'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_nested_many_exclude_argument(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(exclude=['children.age'])
+        result = schema.dump(family)
+        assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    def test_list_nested_no_only_exclude(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family()
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_nested_many_no_only_exclude(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2()
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_list_nested_only_exclude_conflict(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family(Schema):
+            children = fields.List(fields.Nested(Child))
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family(only=['children.name'], exclude=['children.name'])
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
+    def test_nested_many_only_exclude_conflict(self):
+        class Child(Schema):
+            name = fields.String()
+            age = fields.Integer()
+
+        class Family2(Schema):
+            children = fields.Nested(Child, many=True)
+
+        family = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        schema = Family2(only=['children.name'], exclude=['children.name'])
+        result = schema.dump(family)
+        expected = {'children': [{'name': 'Tommy', 'age': 12}, {'name': 'Lily', 'age': 15}]}
+        assert result == expected
+
 
 class TestTupleNested:
 
@@ -339,3 +443,42 @@ class TestDictNested:
             assert excinfo.value.args[0] == {
                 'children': {'daughter': {'value': {'age': ['Missing data for required field.']}}},
             }
+
+# New tests for ensuring changes do not introduce side effects
+
+@pytest.fixture
+def family_data():
+    return {
+        'children': [
+            {'name': 'Tommy', 'age': 12},
+            {'name': 'Lily', 'age': 15},
+        ]
+    }
+
+def test_list_nested_only_exclude(family_data):
+    class Child(Schema):
+        name = fields.String()
+        age = fields.Integer()
+
+    class Family(Schema):
+        children = fields.List(fields.Nested(Child))
+
+    schema = Family(only=['children.name'])
+    result = schema.dump(family_data)
+    assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+    schema = Family(exclude=['children.age'])
+    result = schema.dump(family_data)
+    assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily'}]
+
+def test_nested_many_only_exclude(family_data):
+    class Child(Schema):
+        name = fields.String()
+        age = fields.Integer()
+
+    class Family2(Schema):
+        children = fields.Nested(Child, many=True)
+
+    schema = Family2(only=['children.name'])
+    result = schema.dump(family_data)
+    assert result['children'] == [{'name': 'Tommy'}, {'name': 'Lily
