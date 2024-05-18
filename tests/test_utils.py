@@ -162,7 +162,7 @@ def test_rfcformat_central():
 
 def test_rfcformat_central_localized():
     d = central.localize(dt.datetime(2013, 11, 10, 8, 23, 45), is_dst=False)
-    assert utils.rfcformat(d, localtime=True) == "Sun, 10 Nov 2013 08:23:45 -0600"
+    assert utils.rfcformat(d, localtime=True) == "Sun, 10 Nov 2013 08:23:45-06:00"
 
 def test_isoformat():
     d = dt.datetime(2013, 11, 10, 1, 23, 45)
@@ -247,3 +247,46 @@ def test_get_func_args():
 
     for func in [f1, f2, f3]:
         assert utils.get_func_args(func) == ['self', 'foo', 'bar']
+
+# New test cases for ISO8601 datetime strings with 'Z' and other timezone designators
+def test_iso8601_with_z():
+    iso_datetime = '2019-06-17T00:57:41.000Z'
+    expected_datetime = dt.datetime(2019, 6, 17, 0, 57, 41, 0)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_with_timezone_offset():
+    iso_datetime = '2019-06-17T00:57:41.000+02:00'
+    expected_datetime = dt.datetime(2019, 6, 16, 22, 57, 41, 0)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_with_compact_timezone_offset():
+    iso_datetime = '2019-06-17T00:57:41.000+0200'
+    expected_datetime = dt.datetime(2019, 6, 16, 22, 57, 41, 0)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_with_hour_only_timezone_offset():
+    iso_datetime = '2019-06-17T00:57:41.000+02'
+    expected_datetime = dt.datetime(2019, 6, 16, 22, 57, 41, 0)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_with_three_microseconds():
+    iso_datetime = '2019-06-17T00:57:41.123Z'
+    expected_datetime = dt.datetime(2019, 6, 17, 0, 57, 41, 123000)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_with_six_microseconds():
+    iso_datetime = '2019-06-17T00:57:41.123456Z'
+    expected_datetime = dt.datetime(2019, 6, 17, 0, 57, 41, 123456)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
+
+def test_iso8601_without_microseconds():
+    iso_datetime = '2019-06-17T00:57:41Z'
+    expected_datetime = dt.datetime(2019, 6, 17, 0, 57, 41, 0)
+    result = utils.from_iso_datetime(iso_datetime)
+    assert result == expected_datetime
