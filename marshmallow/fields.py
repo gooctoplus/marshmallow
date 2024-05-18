@@ -38,11 +38,12 @@ class List(Field):
     def _bind_to_schema(self, field_name, schema):
         self.field_name = field_name
         self.parent = schema
-        self.inner._bind_to_schema(field_name, self)
         if hasattr(schema, 'opts'):
             self.opts = schema.opts
         else:
             self.opts = None
+        if hasattr(self.inner, '_bind_to_schema'):
+            self.inner._bind_to_schema(field_name, self)
 
 class Tuple(Field):
     def __init__(self, inner_fields, **kwargs):
@@ -52,9 +53,10 @@ class Tuple(Field):
     def _bind_to_schema(self, field_name, schema):
         self.field_name = field_name
         self.parent = schema
-        for inner_field in self.inner_fields:
-            inner_field._bind_to_schema(field_name, self)
         if hasattr(schema, 'opts'):
             self.opts = schema.opts
         else:
             self.opts = None
+        for inner_field in self.inner_fields:
+            if hasattr(inner_field, '_bind_to_schema'):
+                inner_field._bind_to_schema(field_name, self)
